@@ -29,14 +29,6 @@ controller.hears(['--time','-t'],['direct_message','direct_mention','mention'],f
     //日付を出力
     bot.reply(message,date.toString());
     bot.reply(message,"messageの中身を確認します : " + JSON.stringify(message));
-    /*
-    bot.say({
-        channel: 'general',
-        text: message.toString(),
-        username: 'hoge',
-        icon_url: ''
-                });
-     */
 });
 
 
