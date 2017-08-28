@@ -1,18 +1,4 @@
-var request = require('request');
-var headers = {
-  'Content-Type':'application/json'
-}
-var channels_replies = {
-  url: 'https://slack.com/api/channels.replies',
-  method: 'POST',
-  headers: headers,
-  json: true,
-  form: {
-            token : process.env.token,
-            channel : 'undef',
-            ts : 'undef'
-        }
-}
+
 const Botkit = require('botkit');
 //設定
 var startTime = null;
@@ -43,19 +29,13 @@ controller.hears(['--time','-t'],['direct_message','direct_mention','mention'],f
     //日付を出力
     bot.reply(message,date.toString());
     bot.reply(message,"messageの中身を確認します : " + JSON.stringify(message));
-    bot.reply(message,"必要な情報は見れているのかテスト: " + message.channel + " : " + message.ts);
-    channels_replies.form.channel = message.channel;
-    channels_replies.form.ts = message.ts;
-    request.post(channels_replies,function(err,res,body){
-        console.log(JSON.stringify(res.body));
-    });
-
 });
 
 
 /**
  * 朝会　始め
  */
+var asakaiStart = '朝会こそが人間の可能性なのかもしれん';
 controller.hears(['--asakai','-a'],['direct_message','direct_mention','mention'],function(bot,message) {
     if(startTime){
         bot.say({
@@ -65,7 +45,7 @@ controller.hears(['--asakai','-a'],['direct_message','direct_mention','mention']
     }else{
         startTime = new Date();
         bot.say({
-            text : "朝会スレッドはこちら startTime : " + startTime.toString(),
+            text : "朝会スレッドはこちらですよ〜！ startTime : " + startTime.toString(),
             channel : message.channel
         });
         
@@ -75,16 +55,12 @@ controller.hears(['--asakai','-a'],['direct_message','direct_mention','mention']
 /**
  * 朝会　終わり
  */
-var asakaiEndMsg1 = '---朝会終了---';
-var asakaiEndMsg2 = '所要時間：'
-var asakaiEndMsg2 = 'ms'
+var asakaiEndMsg1 = 'みなさんが朝会を終了させるまでに';
+var asakaiEndMsg2 = 'msかかりました。'
 controller.hears(['--owari','-o'],['direct_message','direct_mention','mention'],function(bot,message) {
     if(startTime){
         endTime = new Date();
         //bot.reply(message,asakaiEndMsg1 + (endTime - startTime) + asakaiEndMsg2); 
-        //このタイミングでスレッドの取得を行いたい
-        //つまりAPIを叩くということだと思うのだが...?
-
         bot.say({
             text : asakaiEndMsg1 + (endTime - startTime) + asakaiEndMsg2,
             channel : message.channel
