@@ -2,21 +2,10 @@ var request = require('request');
 var headers = {
   'Content-Type':'application/json'
 }
-var channels_replies = {
-  url: 'https://slack.com/api/channels.replies',
-  method: 'POST',
-  headers: headers,
-  json: true,
-  form: {
-            token : process.env.token,
-            channel : 'undef',
-            ts : 'undef'
-        }
-}
 const Botkit = require('botkit');
 //設定
-var startTime = null;
-var endTime = null;
+var start = null;
+var end = null;
 var date = null;
 
 if (!process.env.token) {
@@ -25,7 +14,7 @@ if (!process.env.token) {
 }
 
 const controller = Botkit.slackbot({
-    debug: false
+    json_file_store: 'storage_bot_db'
 });
 
 controller.spawn({
@@ -44,10 +33,13 @@ controller.hears(['--time','-t'],['direct_message','direct_mention','mention'],f
     bot.reply(message,date.toString());
     bot.reply(message,"messageの中身を確認します : " + JSON.stringify(message));
     bot.reply(message,"必要な情報は見れているのかテスト: " + message.channel + " : " + message.ts);
-    channels_replies.form.channel = message.channel;
-    channels_replies.form.ts = message.ts;
-    request.post(channels_replies,function(err,res,body){
-        console.log(JSON.stringify(res.body));
+
+    bot.api.channels.replies({
+        token : channels_replies.form.token,
+        channel : channels_replies.form.channel,
+        thread_ts : channels_replies.form.ts
+    },function(err,res){
+        console.log(res);
     });
 
 });
@@ -57,19 +49,38 @@ controller.hears(['--time','-t'],['direct_message','direct_mention','mention'],f
  * 朝会　始め
  */
 controller.hears(['--asakai','-a'],['direct_message','direct_mention','mention'],function(bot,message) {
-    if(startTime){
+    if(start){
         bot.say({
             text : "もう朝会始まってそう",
             channel : message.channel
         });
     }else{
-        startTime = new Date();
+        start = {
+            time : new Date(),
+            channel : message.channel,
+            ts : 'undef'
+        };
         bot.say({
-            text : "朝会スレッドはこちら startTime : " + startTime.toString(),
+            text : "@here 朝会スレッドはこちら start : " + start.time ,
             channel : message.channel
+        },function(bot,message){
+            start.ts = message.ts;
         });
-        
+        /*
+        bot.api.channels.history({
+            token : process.env.token,
+            channel : start.channel,
+            count : 1
+        },function(err,res){
+            console.log(res);
+        });
+        */
     }
+});
+//朝会スレッドのtsを取得したい
+controller.hears('朝会スレッドはこちら' , 'bot_message' , function(bot,message){
+    start.ts = message.ts;
+    console.log('syutoku');
 });
 
 /**
@@ -79,17 +90,28 @@ var asakaiEndMsg1 = '---朝会終了---';
 var asakaiEndMsg2 = '所要時間：'
 var asakaiEndMsg2 = 'ms'
 controller.hears(['--owari','-o'],['direct_message','direct_mention','mention'],function(bot,message) {
-    if(startTime){
-        endTime = new Date();
+    if(start){
+        end = new Date();
         //bot.reply(message,asakaiEndMsg1 + (endTime - startTime) + asakaiEndMsg2); 
         //このタイミングでスレッドの取得を行いたい
         //つまりAPIを叩くということだと思うのだが...?
+        bot.api.channels.replies({
+            token : process.env.token,
+            channel : start.channel,
+            thread_ts : start.ts
+        },function(err,res){
+            var arr = res.messages;
+            arr.forEach(function(element) {
+                console.log(element.text);
+            });
+        });
+
 
         bot.say({
-            text : asakaiEndMsg1 + (endTime - startTime) + asakaiEndMsg2,
+            text : asakaiEndMsg1 + (end - start.time) + asakaiEndMsg2,
             channel : message.channel
         });
-        startTime = null;
+        start = null;
     }else{
         bot.say({
             text : "朝会始まってなくね？",
