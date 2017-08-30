@@ -63,7 +63,7 @@ controller.hears(['--asakai','-a'],['direct_message','direct_mention','mention']
         bot.say({
             text : "@here 朝会スレッドはこちら start : " + start.time ,
             channel : message.channel
-        },function(bot,message){
+        },function(bot,message){//引数はerr,resでは？botはnullになってたし
             start.ts = message.ts;
         });
         /*
