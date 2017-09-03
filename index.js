@@ -3,10 +3,6 @@ var headers = {
     'Content-Type': 'application/json'
 }
 const Botkit = require('botkit');
-//設定
-var start = null;
-var end = null;
-var date = null;
 
 if (!process.env.token) {
     console.log('Error: Specify token in environment');
@@ -24,31 +20,26 @@ controller.spawn({
         throw new Error(err);
     }
 });
+//発言を行いその情報を返す
+function myfunc1(str) {
+    var ts = null;
+}
 /**
- * 時刻確認用
+ * 情報確認用テスト
  */
-controller.hears(['--time', '-t'], ['direct_message', 'direct_mention', 'mention'], function (bot, message) {
-    date = new Date();
-    //日付を出力
-    bot.reply(message, date.toString());
-    bot.reply(message, "messageの中身を確認します : " + JSON.stringify(message));
-    bot.reply(message, "必要な情報は見れているのかテスト: " + message.channel + " : " + message.ts);
-
-    bot.api.channels.replies({
-        token: channels_replies.form.token,
-        channel: channels_replies.form.channel,
-        thread_ts: channels_replies.form.ts
-    }, function (err, res) {
-        console.log(res);
-    });
-
+controller.hears('-t', ['direct_message', 'direct_mention', 'mention'], function (bot, message) {
+    console.log(
+        bot.say({
+            text: JSON.stringify(message),
+            channel: message.channel
+        }));
 });
 //データストアのテスト
 controller.hears('savetest', ['direct_message', 'direct_mention', 'mention'], function (bot, message) {
     testuser = {
-        id : message.user,
-        user : message.user,
-        name : 'friskman'
+        id: message.user,
+        user: message.user,
+        name: 'friskman'
     };
     //saveする際、第一引数の項目：IDを参照してそのファイル名でjsonファイルをつくっている模様
     //ユーザごと、チャンネルごと、チームごとの設定も同じように行うことができる　と思う
@@ -72,55 +63,66 @@ controller.hears('gettest', ['direct_message', 'direct_mention', 'mention'], fun
         });
     });
 });
+
 //データの削除はまた今度
 
-
-
-/**
- * 朝会　始め
- */
-controller.hears(['--asakai', '-a'], ['direct_message', 'direct_mention', 'mention'], function (bot, message) {
-    if (start) {
-        bot.say({
-            text: "もう朝会始まってそう",
-            channel: message.channel
-        });
-    } else {
-        start = {
-            time: new Date(),
-            channel: message.channel,
-            ts: 'undef'
-        };
-        bot.say({
-            text: "@here 朝会スレッドはこちら start : " + start.time,
-            channel: message.channel
-        }, function (bot, message) {//適当に書いたら動いた
-            start.ts = message.ts;
-        });
-        /*
-        bot.api.channels.history({
-            token : process.env.token,
-            channel : start.channel,
-            count : 1
-        },function(err,res){
-            console.log(res);
-        });
-        */
-    }
+//asakai start 書き直し
+controller.hears(['朝会始め', '--start'], 'direct_mention', function (bot, message) {
+    controller.storage.channels.get(message.channel, function (err, channel_data) {
+        if (channel_data) {
+            bot.say({
+                text: "朝会はすでに始まっています",
+                channel: message.channel
+            });
+        } else {
+            let time = new Date();
+            bot.say({
+                text: '@here 本日（' + time + '）の朝会スレッドはこちら',
+                channel: message.channel
+            }, function (err, res) {
+                controller.storage.channels.save({
+                    id: message.channel, time: time, ts: res.ts
+                }, function (err) {
+                    if (err) {
+                        bot.say({
+                            text: "データストアの利用に失敗",
+                            channel: message.channel
+                        });
+                    }
+                });
+            });
+        }
+    });
 });
-//朝会スレッドのtsを取得したい
-controller.hears('朝会スレッドはこちら', 'bot_message', function (bot, message) {
-    start.ts = message.ts;
-    console.log('syutoku');
+//asakai end 書き直し
+controller.hears(['朝会終わり', '--end'], 'direct_mention', function (bot, message) {
+    controller.storage.channels.get(message.channel, function (err, channel_data) {
+        if (!channel_data) {
+            bot.say({
+                text: '朝会はまだ始まっていません',
+                channel: message.channel
+            });
+        } else {
+            bot.say({
+                text: '朝会を終了しました。本日の朝会時間：' + (new Date() - new Date(channel_data.time)) + 'ms',
+                channel: message.channel
+            }, function (err) {
+                //データ取得
+                controller.storage.channels.delete(message.channel, function (err) {
+                    if (err) {
+                        bot.say({
+                            text: 'このデータストアがやばい！2017',
+                            channel: message.channel
+                        });
+                    }
+                });
+            });
+        }
+    });
 });
-
 /**
- * 朝会　終わり
- */
-var asakaiEndMsg1 = '---朝会終了---';
-var asakaiEndMsg2 = '所要時間：'
-var asakaiEndMsg2 = 'ms'
-controller.hears(['--owari', '-o'], ['direct_message', 'direct_mention', 'mention'], function (bot, message) {
+ * スレッドからデータを引っ張ってくるサンプル
+controller.hears('-o', 'direct_mention', function (bot, message) {
     if (start) {
         end = new Date();
         //bot.reply(message,asakaiEndMsg1 + (endTime - startTime) + asakaiEndMsg2); 
@@ -150,3 +152,4 @@ controller.hears(['--owari', '-o'], ['direct_message', 'direct_mention', 'mentio
         });
     }
 });
+ */
