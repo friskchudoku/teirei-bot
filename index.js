@@ -63,12 +63,6 @@ controller.hears('gettest', ['direct_message', 'direct_mention', 'mention'], fun
         });
     });
 });
-//データの削除はまた今度
-/*
-controller.hears(['--start2'], 'direct_mention', function (bot, message) {
-    return new Promise()
-    controller.storage.channels.get(message.channel, function (err, channel_data) {
-*/
 
 //asakai start 書き直し
 controller.hears(['朝会始め', '--start'], 'direct_mention', function (bot, message) {
@@ -94,7 +88,6 @@ controller.hears(['朝会始め', '--start'], 'direct_mention', function (bot, m
                         });
                     }
                 });
-                
             });
         }
     });
