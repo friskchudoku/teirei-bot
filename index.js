@@ -20,10 +20,24 @@ controller.spawn({
         throw new Error(err);
     }
 });
-//発言を行いその情報を返す
-function myfunc1(str) {
-    var ts = null;
+//あとでモジュール化する関数
+function getThread(channel_data, bot) {
+    return new Promise(function (resolve, reject) {
+        bot.api.channels.replies({
+            token: process.env.token,
+            channel: channel_data.id,
+            thread_ts: channel_data.ts
+        }, function (err, res) {
+            if (err) {
+                reject(err);
+                return;
+            }
+            resolve(res.messages);
+        });
+    });
 }
+
+
 /**
  * 情報確認用テスト
  */
@@ -104,17 +118,44 @@ controller.hears(['朝会終わり', '--end'], 'direct_mention', function (bot, 
             bot.say({
                 text: '朝会を終了しました。本日の朝会時間：' + (new Date() - new Date(channel_data.time)) + 'ms',
                 channel: message.channel
-            }, function (err) {
-                //データ取得
-                controller.storage.channels.delete(message.channel, function (err) {
-                    if (err) {
+            });
+            //データ取得
+            var thread = getThread(channel_data, bot)
+                .then(function (messages) {
+                    if (messages[0].reply_count) {
+                        var threadMessage = '';
+                        messages.forEach(function (element) {
+                            threadMessage.concat(element.text).concat('¥r¥n');
+                            /*
+                            threadMessage.push({
+                                text: element.text,
+                                user: element.user
+                            });
+                            */
+                        });
+                        return threadMessage;
+                    } else {
                         bot.say({
-                            text: 'このデータストアがやばい！2017',
+                            text: "スレッドに対するリプライはありません",
                             channel: message.channel
                         });
+                        return;
                     }
+                })
+                .catch(function (err) {
+                    console.log(err);
                 });
+            console.log(thread + "+");
+
+            controller.storage.channels.delete(message.channel, function (err) {
+                if (err) {
+                    bot.say({
+                        text: 'このデータストアがやばい！2017',
+                        channel: message.channel
+                    });
+                }
             });
+
         }
     });
 });
