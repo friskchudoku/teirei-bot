@@ -185,6 +185,11 @@ controller.hears(['朝会終わり', '--end'], 'direct_mention', function (bot, 
  */
 
 
+ /**
+  * ZOOMの部屋を一定時間ごとに作る機能
+  
+  */
+
 
 
 
