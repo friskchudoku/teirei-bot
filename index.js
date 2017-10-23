@@ -49,6 +49,56 @@ function getThread(channel_data, bot) {
     });
 }
 
+/**
+ * 質問のテンプレート（Conversation）
+ * @param {*} err 
+ * @param {*} convo 
+ * @param {*} question 質問
+ */
+function askTemplate(err,convo,question){
+    var response_text;
+    convo.ask(question,(response,convo) => {
+        console.log('「' + question + '」' + 'という発言に対するレスポンス');
+        console.dir(response);
+        response_text = response.text;
+        convo.next();
+    });
+    return response_text;
+}
+
+class ChannelMonitor {
+
+    constructor(message,convo){
+        this.message = message;
+        this.convo = convo;
+    }
+
+  　async setMonitorSetting(){
+        console.log(this.convo);
+        var monitorChannelId = this.askTemplate('監視先のチャンネルIDは？');
+        var monitorWord =　this.askTemplate('監視する単語は？');
+        var reportMessage = this.askTemplate('報告するときのメッセージは？');
+        this.convo.say("以下の内容で設定を行います。\n" + 
+        "\n監視先のチャンネルID：" + monitorChannelId +
+        "\n監視を行う単語：" + monitorWord +
+        "\n報告するときのメッセージ：" + reportMessage + 
+        "\n報告先のチャンネル：ここ" );
+    }
+
+    async askTemplate(question){
+        var response_text;
+
+        this.convo.ask(question,(response,convo) => {
+            console.log('「' + question + '」' + 'という発言に対するレスポンス');
+            console.dir(response);
+            response_text = response.text;
+            this.convo.next();
+        });
+        console.log("デバッグ用メッセージ：" + response_text);
+        return response_text;
+    }
+
+}
 
 //asakai start 書き直し
 controller.hears(['朝会始め', '--start'], 'direct_mention', function (bot, message) {
@@ -65,8 +115,8 @@ controller.hears(['朝会始め', '--start'], 'direct_mention', function (bot, m
                 channel: message.channel
             }, function (err, res) {
                 bot.api.pins.add({
-                    channel:res.channel,
-                    timestamp:res.ts
+                    channel: res.channel,
+                    timestamp: res.ts
                 });
                 controller.storage.channels.save({
                     id: message.channel, time: time, ts: res.ts
@@ -98,37 +148,37 @@ controller.hears(['朝会終わり', '--end'], 'direct_mention', function (bot, 
             });
             //データ取得
             var thread = getThread(channel_data, bot)
-            .then(function (messages) {
-                if (messages[0].reply_count) {
-                    var threadMessage = '';
-                    messages.forEach(function (element) {
-                        console.log(JSON.stringify(element));
-                        threadMessage = threadMessage + element.text + '¥n';
-                        /*
-                        threadMessage.push({
-                            text: element.text,
-                            user: element.user
+                .then(function (messages) {
+                    if (messages[0].reply_count) {
+                        var threadMessage = '';
+                        messages.forEach(function (element) {
+                            console.log(JSON.stringify(element));
+                            threadMessage = threadMessage + element.text + '¥n';
+                            /*
+                            threadMessage.push({
+                                text: element.text,
+                                user: element.user
+                            });
+                            */
                         });
-                        */
-                    });
-                    return threadMessage;
-                } else {
+                        return threadMessage;
+                    } else {
+                        bot.say({
+                            text: "スレッドに対するリプライはありません",
+                            channel: message.channel
+                        });
+                        return;
+                    }
+                }).then(function (thread_message) {
                     bot.say({
-                        text: "スレッドに対するリプライはありません",
+                        text: thread_message,
                         channel: message.channel
                     });
-                    return;
-                }
-            }).then(function(thread_message){
-                bot.say({
-                    text: thread_message,
-                    channel:message.channel
+                })
+                .catch(function (err) {
+                    console.log(err);
                 });
-            })
-            .catch(function (err) {
-                console.log(err);
-            });
-            
+
             controller.storage.channels.delete(message.channel, function (err) {
                 if (err) {
                     bot.say({
@@ -137,7 +187,7 @@ controller.hears(['朝会終わり', '--end'], 'direct_mention', function (bot, 
                     });
                 }
             });
-            
+
         }
     });
 });
@@ -154,6 +204,18 @@ controller.hears(['朝会終わり', '--end'], 'direct_mention', function (bot, 
  * 
  * 設定を行い、設定ID、設定内容をコメントする（PIN止め）
  */
+controller.hears(['チャンネル監視'], 'direct_mention', function (bot, message) {
+    bot.botkit.log('チャンネル監視設定 is called.');
+    console.dir(message);
+    bot.startConversation(message,(err,convo) => {
+        var channelMonitor = new ChannelMonitor(message,convo);
+        channelMonitor.setMonitorSetting();
+        
+    });
+
+
+
+});
 
 /**
  * 設定ID一覧
@@ -185,10 +247,10 @@ controller.hears(['朝会終わり', '--end'], 'direct_mention', function (bot, 
  */
 
 
- /**
-  * ZOOMの部屋を一定時間ごとに作る機能
-  
-  */
+/**
+ * ZOOMの部屋を一定時間ごとに作る機能
+ 
+ */
 
 
 
